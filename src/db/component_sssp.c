@@ -294,11 +294,10 @@ component_sssp(
                     else{
                         /* neither are inf, can do addition and comparison */
                         printf("neither inf, %d %d %d\n", cost_list[v], cost_list[w], c_wv);
-                        cost_list[v] = min(cost_list[v], cost_list[w] + c_wv);
-                        
                         if(cost_list[w] + c_wv < cost_list[v]){
                             printf("Adding parent id %llu with child id %llu\n", vertex_list[w], vertex_list[v]);
                             parent_list[v] = w;
+                            cost_list[v] = cost_list[w] + c_wv;
                         }
                     }
                     
