@@ -299,6 +299,7 @@ component_sssp(
     sssp_list[sssp_list_count] = start;
     sssp_list_count++;
     
+    printf("The shortest path between %llu and %llu has a cost of: %d\n", start, end, cost_list[end_index]);
     printf("SSSP List : [");
     for(int n = sssp_list_count-1; n >= 0; n--){
         if(n != 0)
@@ -308,7 +309,7 @@ component_sssp(
     }
     printf("]\n");
     
-    
+    /* free vectors */
     free(parent_list);
     free(vertex_list);
     free(cost_list);
