@@ -16,6 +16,17 @@
 
 /* Place the code for your Dijkstra implementation in this file */
 int
+get_index_from_id(vertexid_t id, vertexid_t* list,int count){
+    for(int i = 0; i < count; i++){
+        if(list[i] == id){
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+int
 component_get_number_of_vertices(component_t c){
     ssize_t size, len;
     char* buf;
@@ -87,7 +98,8 @@ component_find_int_tuple(attribute_t a)
     return NULL;
 }
 
-int get_weight_from_edge(component_t c, vertexid_t v1, vertexid_t v2, char attr_name[]){
+int
+get_weight_from_edge(component_t c, vertexid_t v1, vertexid_t v2, char attr_name[]){
     struct edge e;
     edge_t e1;
     int offset, weight;
@@ -139,7 +151,7 @@ component_sssp(
     c->vfd = vertex_file_init(gno, cno);
     
     /* check for INT attribute type */
-    struct attribute *weight_attr;
+    attribute_t weight_attr;
     weight_attr = component_find_int_tuple(c->se->attrlist);
     if(!weight_attr){
         printf("No integer attributes found to use for weight\n");
@@ -183,51 +195,26 @@ component_sssp(
             end_index = k;
     }
     
-    printf("Vertex List : [");
-    for(int n = 0; n < number_of_vertices; n++){
-        if(n != (number_of_vertices - 1))
-            printf("%llu,", vertex_list[n]);
-        else
-            printf("%llu", vertex_list[n]);
+    /* set all adjacents of start's parents to start */
+    for(int i = 1; i < number_of_vertices; i++){
+        int temp_weight = get_weight_from_edge(c, start, vertex_list[i], weight_attr->name);
+        if(temp_weight != inf){
+            parent_list[i] = start;
+        }
+        
     }
-    printf("]\n");
-    
-    printf("Parent List : [");
-    for(int n = 0; n < number_of_vertices; n++){
-        if(n != (number_of_vertices - 1))
-            printf("%llu,", parent_list[n]);
-        else
-            printf("%llu", parent_list[n]);
-    }
-    printf("]\n");
-    
-    printf("Cost List : [");
-    for(int n = 0; n < number_of_vertices; n++){
-        if(n != (number_of_vertices - 1))
-            printf("%d,", cost_list[n]);
-        else
-            printf("%d", cost_list[n]);
-    }
-    printf("]\n");
-    
-    
     
     /* begin traversal */
     for(int i = 1; i < number_of_vertices; i++){
-        printf("\n\n\n\n\n\n\n\n\n");
-        printf("HERE i=[%d]\n", i);
         /* initialize s list with starting vertex */
         s_list = malloc(number_of_vertices * sizeof(vertexid_t));
         s_list[0] = start;
         s_list_count = 1;
-        printf("S List[0] : %llu\n", s_list[0]);
         
         cost_list[i] = get_weight_from_edge(c, start, vertex_list[i], weight_attr->name);
         /* choose w in V-S such that D[w] is min */
         min = inf;
         for(int j = 0; j < number_of_vertices; j++){
-            printf("\n\n");
-            printf("j={%d}->%llu\n", j, vertex_list[j]);
             /* check if w in V-S */
             in_vs = 1;
             for(int k = 0; k < s_list_count; k++){
@@ -236,13 +223,11 @@ component_sssp(
             }
             /* calculate min in V-S */
             if(in_vs){
-                printf("[1]vertex %llu is in V-S\n", vertex_list[j]);
                 if(cost_list[j] < min){
                     min_index = j;
                 }
             }
             else{
-                printf("[1]vertex %llu is NOT in V-S, continuing\n", vertex_list[j]);
                 continue;
             }
             
@@ -251,25 +236,6 @@ component_sssp(
             s_list[s_list_count] = vertex_list[w];
             s_list_count++;
             
-            printf("s List with s list count = %d: [", s_list_count);
-            for(int n = 0; n < number_of_vertices; n++){
-                if(n != (number_of_vertices - 1))
-                    printf("%llu,", s_list[n]);
-                else
-                    printf("%llu", s_list[n]);
-            }
-            printf("]\n");
-            
-            printf("Cost List [");
-            for(int n = 0; n < number_of_vertices; n++){
-                if(n != (number_of_vertices - 1))
-                    printf("%d,", cost_list[n]);
-                else
-                    printf("%d", cost_list[n]);
-            }
-            printf("]\n");
-        
-            printf("w=[%llu]->%llu\n", w, vertex_list[w]);
             /* check if this edge is on shortest path */
             for(int l = 0; l < number_of_vertices; l++){
                 /* check if v in V-S */
@@ -281,46 +247,26 @@ component_sssp(
                 }
                 /* set cost matrix and check if shortest path is found and add parent */
                 if(in_vs){
-                    printf("vertex %llu is in V-S\n", vertex_list[l]);
                     int c_wv = get_weight_from_edge(c, vertex_list[w], vertex_list[v], weight_attr->name);
-            
-                    printf("(%d) {%d} [%d]\n", c_wv, cost_list[w], cost_list[v]);
                     if(cost_list[w] == inf || c_wv == inf){
                         /* if D[w] or C[w,v] are inf, then the < comparison doesnt need to be made*/
-                        printf("Got inf d[w] = %d c_wv = %d\n", cost_list[w], c_wv);
                         cost_list[v] = min(cost_list[v], inf);
                         
                     }
                     else{
                         /* neither are inf, can do addition and comparison */
-                        printf("neither inf, %d %d %d\n", cost_list[v], cost_list[w], c_wv);
                         if(cost_list[w] + c_wv < cost_list[v]){
-                            printf("Adding parent id %llu with child id %llu\n", vertex_list[w], vertex_list[v]);
-                            parent_list[v] = w;
+                            parent_list[v] = vertex_list[w];
                             cost_list[v] = cost_list[w] + c_wv;
                         }
                     }
-                    
-                }
-                else{
-
-                    printf("vertex %llu is NOT in V-S\n", vertex_list[l]);
-                    
                 }
             }
         }
-        printf("Cost List: [");
-        for(int n = 0; n < number_of_vertices; n++){
-            if(n != (number_of_vertices - 1))
-                printf("%d,", cost_list[n]);
-            else
-                printf("%d", cost_list[n]);
-        }
-        printf("]\n");
     }
     
     cost_list[start_index] = 0;
-    
+#if _DEBUG
     printf("Cost List: [");
     for(int n = 0; n < number_of_vertices; n++){
         if(n != (number_of_vertices - 1))
@@ -338,12 +284,30 @@ component_sssp(
             printf("%llu", parent_list[n]);
     }
     printf("]\n");
-    /*
-    sssp_list_count = 0;
-    for(vertexid_t temp = parent_list[end_index]; temp != start_index; ){
+#endif
+    
+    sssp_list[0] = end;
+    sssp_list_count = 1;
+    
+    
+    for(vertexid_t temp = parent_list[end_index]; temp != start; temp = parent_list[get_index_from_id(temp, vertex_list, number_of_vertices)]){
+        sssp_list[sssp_list_count] = temp;
+        sssp_list_count++;
         
     }
-    */
+    
+    sssp_list[sssp_list_count] = start;
+    sssp_list_count++;
+    
+    printf("SSSP List : [");
+    for(int n = sssp_list_count-1; n >= 0; n--){
+        if(n != 0)
+            printf("%llu,", sssp_list[n]);
+        else
+            printf("%llu", sssp_list[n]);
+    }
+    printf("]\n");
+    
     
     free(parent_list);
     free(vertex_list);
