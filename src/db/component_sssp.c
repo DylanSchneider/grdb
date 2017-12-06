@@ -1,12 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
-#include "config.h"
 #include "cli.h"
 #include "graph.h"
 #define INT_type 4
@@ -24,7 +19,6 @@ get_index_from_id(vertexid_t id, vertexid_t* list,int count){
     }
     return -1;
 }
-
 
 int
 component_get_number_of_vertices(component_t c){
