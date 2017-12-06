@@ -70,12 +70,17 @@ schema_attribute_insert(schema_t s, attribute_t attr)
 
 	assert (s != NULL);
 	assert (attr != NULL);
-
 	if (s->attrlist == NULL) {
 		s->attrlist = attr;
 		return;
 	}
+#if _DEBUG
+    printf("%p %p %p\n", t, s, s->attrlist);
+#endif
 	for (t = s->attrlist; t->next != NULL; t = t->next);
+#if _DEBUG
+    printf("DOESNT REACH\n");
+#endif
 	t->next = attr;
 }
 

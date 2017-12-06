@@ -55,10 +55,10 @@ schema_read(int fd, enum_list_t el)
 			base_types_str[attr->bt]);
 #endif
 		/* Read enum name if attribute is an enum */
+        
 		if (attr->bt == ENUM) {
 			char s[ENUM_NAME_LEN];
 			enum_t e;
-
 			memset(s, 0, ENUM_NAME_LEN);
 			len = read(fd, s, ENUM_NAME_LEN);
 			if (len < ENUM_NAME_LEN)
@@ -68,7 +68,6 @@ schema_read(int fd, enum_list_t el)
 #endif
 			/* Lookup enum in enum list */
 			e = enum_list_find_by_name(el, s);
-
 			/* Hook the enum to the attribute if found */
 			if (e == NULL) {
 #if _DEBUG
