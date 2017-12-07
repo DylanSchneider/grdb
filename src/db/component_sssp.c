@@ -324,5 +324,5 @@ component_sssp(
     free(sssp_list);
     free(s_list);
 
-	return (1);
+    return (1);
 }
