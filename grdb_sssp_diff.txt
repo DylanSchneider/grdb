@@ -1,0 +1,1272 @@
+diff --git a/include/graph.h b/include/graph.h
+index 0f6916a..46a1fca 100644
+--- a/include/graph.h
++++ b/include/graph.h
+@@ -3,7 +3,6 @@
+ 
+ 
+ #include <stdlib.h>
+-#include <sys/types.h>
+ #include "schema.h"
+ #include "tuple.h"
+ #include "vertexid.h"
+diff --git a/main.diff b/main.diff
+deleted file mode 100644
+index d799ed1..0000000
+--- a/main.diff
++++ /dev/null
+@@ -1,263 +0,0 @@
+-diff --git a/include/graph.h b/include/graph.h
+-index 0f6916a..46a1fca 100644
+---- a/include/graph.h
+-+++ b/include/graph.h
+-@@ -3,7 +3,6 @@
+- 
+- 
+- #include <stdlib.h>
+--#include <sys/types.h>
+- #include "schema.h"
+- #include "tuple.h"
+- #include "vertexid.h"
+-diff --git a/src/db/component_sssp.c b/src/db/component_sssp.c
+-index b201d75..0691434 100644
+---- a/src/db/component_sssp.c
+-+++ b/src/db/component_sssp.c
+-@@ -1,188 +1,32 @@
+--#include <assert.h>
+--#include <stdio.h>
+--#include <string.h>
+--#include <string.h>
+--#include <fcntl.h>
+--#include <sys/stat.h>
+--#include <unistd.h>
+--#include <limits.h>
+--#include "config.h"
+--#include "cli.h"
+- #include "graph.h"
+--#define INT_type 4
+--#define inf INT_MAX
+- 
+- 
+- /* Place the code for your Dijkstra implementation in this file */
+--int
+--component_get_number_of_vertices(component_t c){
+--    ssize_t size, len;
+--    char* buf;
+--    off_t off;
+--    int readlen, count;
+--    
+--    if (c->sv == NULL)
+--        size = 0;
+--    else
+--        size = schema_size(c->sv);
+--    
+--    readlen = sizeof(vertexid_t) + size;
+--    buf = malloc(readlen);
+--    
+--    count = 0;
+--    for (off = 0;; off += readlen) {
+--        lseek(c->vfd, off, SEEK_SET);
+--        len = read(c->vfd, buf, readlen);
+--        
+--        if (len <= 0)
+--            break;
+--        (count) ++;
+--    }
+--    free(buf);
+--    return count;
+--}
+--
+--void
+--component_get_vertices(component_t c, /*int * count, */vertexid_t *list){
+--    ssize_t size, len;
+--    int readlen;
+--    char* buf;
+--    off_t off;
+--    vertexid_t v;
+--    int i;
+--    /*
+--    if (c->sv == NULL)
+--        size = 0;
+--    else
+--        size = schema_size(c->sv);
+--    
+--    readlen = sizeof(vertexid_t) + size;
+--    buf = malloc(readlen);
+--    
+--    *count = 0;
+--    for (off = 0;; off += readlen) {
+--        lseek(c->vfd, off, SEEK_SET);
+--        len = read(c->vfd, buf, readlen);
+--        
+--        if (len <= 0)
+--            break;
+--        (*count) ++;
+--    }
+--    free(buf);
+--
+--    int malloc_size = ((*count) * sizeof(vertexid_t));
+--    printf("((%d))\n", malloc_size);
+--    list = malloc(malloc_size);*/
+--    if (c->sv == NULL)
+--        size = 0;
+--    else
+--        size = schema_size(c->sv);
+--    
+--    readlen = sizeof(vertexid_t) + size;
+--    buf = malloc(readlen);
+--    
+--    for (i = 0,off = 0;; i++, off += readlen) {
+--        lseek(c->vfd, off, SEEK_SET);
+--        len = read(c->vfd, buf, readlen);
+--        if (len <= 0)
+--            break;
+--        
+--        v = *((vertexid_t *) buf);
+--        list[i] = v;
+--    }
+--    free(buf);
+--}
+--
+--attribute_t
+--component_find_int_tuple(attribute_t a)
+--{
+--    attribute_t attr;
+--    
+--    assert (a != NULL);
+--    
+--    for(attr = a; attr != NULL; attr = attr->next){
+--        if(attr->bt == INT_type)
+--            return attr;
+--    }
+--    
+--    return NULL;
+--}
+- 
+--int get_weight_from_edge(component_t c, vertexid_t v1, vertexid_t v2, char attr_name[]){
+--    struct edge e;
+--    edge_t e1;
+--    int offset, weight;
+--    
+--    edge_init(&e);
+--    edge_set_vertices(&e, v1, v2);
+--    
+--    e1 = component_find_edge_by_ids(c, &e);
+--    
+--    if(e1 == NULL){
+--        printf("no edge between %llu and %llu\n", v1, v2);
+--        return inf;
+--    }
+--    
+--    offset = tuple_get_offset(e1->tuple, attr_name);
+--    weight = tuple_get_int(e1->tuple->buf + offset);
+--    return weight;
+--}
+- 
+- int
+- component_sssp(
+-         component_t c,
+--        vertexid_t start,
+--        vertexid_t end,
+-+        vertexid_t v1,
+-+        vertexid_t v2,
+-         int *n,
+-         int *total_weight,
+-         vertexid_t **path)
+- {
+--    
+--    int number_of_vertices; //also used as size of vectors, upper limit on elements in the vectors is v=number of vertices
+--    
+--    /* variable sized vectors with count to keep track of element s*/
+--    vertexid_t *s_list;
+--    vertexid_t *parent_list;
+--    int s_list_count;
+--    int parent_list_count;
+--    
+--    /* fixed size vectors */
+--    vertexid_t *vertex_list;
+--    long long unsigned *cost_list;
+--    
+--    /* add file descriptors to component c */
+--    c->efd = edge_file_init(gno, cno);
+--    c->vfd = vertex_file_init(gno, cno);
+--    
+--    /* calculate max size for vectors, malloc */
+--    number_of_vertices = component_get_number_of_vertices(c);
+--    
+--    s_list = malloc(number_of_vertices * sizeof(vertexid_t));
+--    parent_list = malloc(number_of_vertices * sizeof(vertexid_t));
+--    vertex_list = malloc(number_of_vertices * sizeof(vertexid_t));
+--    cost_list = malloc(number_of_vertices * sizeof(long long unsigned));
+--    
+--    /*for(int i = 0; i < number_of_vertices; i++){
+--        s_list[i] = malloc_size
+--    }*/
+--    
+--    
+--    struct attribute *weight_attr;
+--    
+--    weight_attr = component_find_int_tuple(c->se->attrlist);
+--    if(!weight_attr){
+--        printf("No integer attributes found to use for weight\n");
+--        return -1;
+--    }
+--    
+--    component_get_vertices(c, vertex_list);
+--    
+--    for(int i = 0; i < number_of_vertices; i++){
+--        printf("[[%llu]]\n", vertex_list[i]);
+--    }
+--    
+--    
+--     
+-+	
+-+	/*
+-+	 * Figure out which attribute in the component edges schema you will
+-+	 * use for your weight function
+-+	 */
+-+
+-+
+-+
+-+	/*
+-+	 * Execute Dijkstra on the attribute you found for the specified
+-+	 * component
+-+	 */
+-+
+-+
+- 
+- 	/* Change this as needed */
+- 	return (-1);
+-diff --git a/src/db/edge.c b/src/db/edge.c
+-index 30d1743..a956744 100644
+---- a/src/db/edge.c
+-+++ b/src/db/edge.c
+-@@ -8,7 +8,6 @@
+- #include <string.h>
+- #include "config.h"
+- #include "graph.h"
+--#include "cli.h"
+- 
+- void
+- edge_init(edge_t e)
+-@@ -26,7 +25,7 @@ edge_file_init(int gidx, int cidx)
+- 
+- 	/* Create component edge file */
+- 	memset(s, 0, BUFSIZE);
+--	sprintf(s, "%s/%d/%d/e", grdbdir, gidx, cidx);
+-+	sprintf(s, "%s/%d/%d/e", GRDBDIR, gidx, cidx);
+- #if _DEBUG
+- 	printf("edge_file_init: open edge file %s\n", s);
+- #endif
+-diff --git a/src/db/vertex.c b/src/db/vertex.c
+-index 6761971..dc8d122 100644
+---- a/src/db/vertex.c
+-+++ b/src/db/vertex.c
+-@@ -7,7 +7,6 @@
+- #include <string.h>
+- #include "config.h"
+- #include "graph.h"
+--#include "cli.h"
+- 
+- /* Clear the vertex data structure */
+- void
+-@@ -26,7 +25,7 @@ vertex_file_init(int gidx, int cidx)
+- 
+- 	/* Create component vertex file */
+- 	memset(s, 0, BUFSIZE);
+--	sprintf(s, "%s/%d/%d/v", grdbdir, gidx, cidx);
+-+	sprintf(s, "%s/%d/%d/v", GRDBDIR, gidx, cidx);
+- #if _DEBUG
+- 	printf("vertex_file_init: open vertex file %s\n", s);
+- #endif
+diff --git a/src/cli/cli_graph_tuple.c b/src/cli/cli_graph_tuple.c
+index 4e9e60c..6885c6d 100644
+--- a/src/cli/cli_graph_tuple.c
++++ b/src/cli/cli_graph_tuple.c
+@@ -12,299 +12,299 @@
+ static void
+ cli_graph_vertex_write(vertex_t v)
+ {
+-    int fd;
+-    char s[BUFSIZE];
+-    
+-    memset(s, 0, BUFSIZE);
+-    sprintf(s, "%s/%d/%d/v", grdbdir, gno, cno);
++	int fd;
++	char s[BUFSIZE];
++
++	memset(s, 0, BUFSIZE);
++	sprintf(s, "%s/%d/%d/v", grdbdir, gno, cno);
+ #if _DEBUG
+-    printf("cli_graph_vertex_write: open vertex file %s\n", s);
++	printf("cli_graph_vertex_write: open vertex file %s\n", s);
+ #endif
+-    fd = open(s, O_RDWR);
+-    if (fd < 0) {
++	fd = open(s, O_RDWR);
++	if (fd < 0) {
+ #if _DEBUG
+-        printf("cli_graph_vertex_write: ");
+-        printf("open vertex file failed (%s)\n",
+-               strerror(errno));
++		printf("cli_graph_vertex_write: ");
++		printf("open vertex file failed (%s)\n",
++			strerror(errno));
+ #endif
+-        return;
+-    }
+-    vertex_write(v, fd);
+-    close(fd);
++		return;
++	}
++	vertex_write(v, fd);
++	close(fd);
+ }
+ 
+ static void
+ cli_graph_edge_write(edge_t e)
+ {
+-    int fd;
+-    char s[BUFSIZE];
+-    
+-    memset(s, 0, BUFSIZE);
+-    sprintf(s, "%s/%d/%d/e", grdbdir, gno, cno);
++	int fd;
++	char s[BUFSIZE];
++
++	memset(s, 0, BUFSIZE);
++	sprintf(s, "%s/%d/%d/e", grdbdir, gno, cno);
+ #if _DEBUG
+-    printf("cli_graph_edge_write: open edge file %s\n", s);
++	printf("cli_graph_edge_write: open edge file %s\n", s);
+ #endif
+-    fd = open(s, O_RDWR);
+-    if (fd < 0) {
++	fd = open(s, O_RDWR);
++	if (fd < 0) {
+ #if _DEBUG
+-        printf("cli_graph_edge_write: ");
+-        printf("open edge file failed (%s)\n",
+-               strerror(errno));
++		printf("cli_graph_edge_write: ");
++		printf("open edge file failed (%s)\n",
++			strerror(errno));
+ #endif
+-        return;
+-    }
+-    edge_write(e, fd);
+-    close(fd);
++		return;
++	}
++	edge_write(e, fd);
++	close(fd);
+ }
+ 
+ void
+ cli_graph_tuple(char *cmdline, int *pos)
+ {
+-    char s1[BUFSIZE], s2[BUFSIZE], s3[BUFSIZE], s4[BUFSIZE];
+-    vertexid_t id1;
+-    schema_type_t st;
+-    int i, n;
+-    
+-    memset(s1, 0, BUFSIZE);
+-    nextarg(cmdline, pos, " ", s1);
+-    memset(s2, 0, BUFSIZE);
+-    nextarg(cmdline, pos, " ", s2);
+-    memset(s3, 0, BUFSIZE);
+-    nextarg(cmdline, pos, " ", s3);
+-    memset(s4, 0, BUFSIZE);
+-    nextarg(cmdline, pos, " ", s4);
++	char s1[BUFSIZE], s2[BUFSIZE], s3[BUFSIZE], s4[BUFSIZE];
++	vertexid_t id1;
++	schema_type_t st;
++	int i, n;
++
++	memset(s1, 0, BUFSIZE);
++	nextarg(cmdline, pos, " ", s1);
++	memset(s2, 0, BUFSIZE);
++	nextarg(cmdline, pos, " ", s2);
++	memset(s3, 0, BUFSIZE);
++	nextarg(cmdline, pos, " ", s3);
++	memset(s4, 0, BUFSIZE);
++	nextarg(cmdline, pos, " ", s4);
+ #if _DEBUG
+-    printf("s1=[%s] s2=[%s] s3=[%s], s4=[%s]\n", s1, s2, s3, s4);
++	printf("s1=[%s] s2=[%s] s3=[%s], s4=[%s]\n", s1, s2, s3, s4);
+ #endif
+-    if (strlen(s1) <= 0) {
+-        char s[BUFSIZE];
+-        
+-        memset(s, 0, BUFSIZE);
+-        sprintf(s, "%d", gno);
+-        cli_components_print(s, 1); /* with tuples */
+-        return;
+-    }
+-    if (strlen(s2) <= 0) {
+-        printf("Missing name or id\n");
+-        return;
+-    }
+-    /* s1 is always a vertex id */
+-    id1 = (vertexid_t) atoi(s1);
+-    
+-    /* Figure out if this is for an edge or vertex tuple */
+-    n = strlen(s2);
+-    for (i = 0, st = EDGE; i < n; i++)
+-        if (!isdigit(s2[i])) {
+-            st = VERTEX;
+-            break;
+-        }
+-    
+-    if (st == VERTEX) {
+-        struct component c;
+-        struct vertex v;
+-        vertex_t v1;
+-        base_types_t bt;
+-        int fd;
+-        char s[BUFSIZE];
+-        
+-        /* Setup a component for searching */
+-        component_init(&c);
+-        
+-        /* Load enums */
+-        fd = enum_file_open(grdbdir, gno, cno);
+-        if (fd < 0) {
+-            printf("Open enum file failed\n");
+-            return;
+-        }
+-        enum_list_init(&(c.el));
+-        enum_list_read(&(c.el), fd);
+-        close(fd);
+-        
+-        /* Load the vertex schema */
+-        memset(s, 0, BUFSIZE);
+-        sprintf(s, "%s/%d/%d/sv", grdbdir, gno, cno);
++	if (strlen(s1) <= 0) {
++		char s[BUFSIZE];
++
++		memset(s, 0, BUFSIZE);
++		sprintf(s, "%d", gno);
++		cli_components_print(s, 1); /* with tuples */
++		return;
++	}
++	if (strlen(s2) <= 0) {
++		printf("Missing name or id\n");
++		return;
++	}
++	/* s1 is always a vertex id */
++	id1 = (vertexid_t) atoi(s1);
++
++	/* Figure out if this is for an edge or vertex tuple */
++	n = strlen(s2);
++	for (i = 0, st = EDGE; i < n; i++)
++		if (!isdigit(s2[i])) {
++			st = VERTEX;
++			break;
++		}
++
++	if (st == VERTEX) {
++		struct component c;
++		struct vertex v;
++		vertex_t v1;
++		base_types_t bt;
++		int fd;
++		char s[BUFSIZE];
++
++		/* Setup a component for searching */
++		component_init(&c);
++
++		/* Load enums */
++		fd = enum_file_open(grdbdir, gno, cno);
++		if (fd < 0) {
++			printf("Open enum file failed\n");
++			return;
++		}
++		enum_list_init(&(c.el));
++		enum_list_read(&(c.el), fd);
++		close(fd);
++
++		/* Load the vertex schema */
++		memset(s, 0, BUFSIZE);
++		sprintf(s, "%s/%d/%d/sv", grdbdir, gno, cno);
+ #if _DEBUG
+-        printf("cli_graph_tuple: read vertex schema file %s\n", s);
++		printf("cli_graph_tuple: read vertex schema file %s\n", s);
+ #endif
+-        fd = open(s, O_RDWR | O_CREAT, 0644);
+-        if (fd < 0) {
+-            printf("Open vertex schema file failed\n");
+-            return;
+-        }
+-        c.sv = schema_read(fd, c.el);
+-        close(fd);
+-        
+-        /* Set the value of a vertex tuple */
+-        vertex_init(&v);
+-        v.id = id1;
+-        
+-        /* Open the vertex file */
+-        memset(s, 0, BUFSIZE);
+-        sprintf(s, "%s/%d/%d/v", grdbdir, gno, cno);
++		fd = open(s, O_RDWR | O_CREAT, 0644);
++		if (fd < 0) {
++			printf("Open vertex schema file failed\n");
++			return;
++		}
++		c.sv = schema_read(fd, c.el);
++		close(fd);
++
++		/* Set the value of a vertex tuple */
++		vertex_init(&v);
++		v.id = id1;
++
++		/* Open the vertex file */
++		memset(s, 0, BUFSIZE);
++		sprintf(s, "%s/%d/%d/v", grdbdir, gno, cno);
+ #if _DEBUG
+-        printf("cli_graph_tuple: open vertex file %s\n", s);
++		printf("cli_graph_tuple: open vertex file %s\n", s);
+ #endif
+-        c.vfd = open(s, O_RDWR | O_CREAT, 0644);
+-        if (c.vfd < 0) {
+-            printf("Open vertex file failed\n");
+-            return;
+-        }
+-        v1 = component_find_vertex_by_id(&c, &v);
+-        if (v1 == NULL) {
+-            printf("Find vertex id %llu failed\n", id1);
+-            return;
+-        }
+-        close(c.vfd);
+-        
+-        /* s2 is an attribute name from the vertex schema */
+-        
+-        /* Check for a VARCHAR */
+-        bt = schema_find_type_by_name(v1->tuple->s, s2);
+-        if (bt == VARCHAR) {
+-            char *first, *second;
+-            
+-            first = strchr(cmdline, '"');
+-            if (first == NULL) {
+-                printf("Missing first quote");
+-                return;
+-            }
+-            second = strchr(first + 1, '"');
+-            if (second == NULL) {
+-                printf("Missing last quote");
+-                return;
+-            }
+-            memset(s3, 0, BUFSIZE);
+-            strncpy(s3, first + 1, second - first - 1);
++		c.vfd = open(s, O_RDWR | O_CREAT, 0644);
++		if (c.vfd < 0) {
++			printf("Open vertex file failed\n");
++			return;
++		}
++		v1 = component_find_vertex_by_id(&c, &v);
++		if (v1 == NULL) {
++			printf("Find vertex id %llu failed\n", id1);
++			return;
++		}
++		close(c.vfd);
++
++		/* s2 is an attribute name from the vertex schema */
++
++		/* Check for a VARCHAR */
++		bt = schema_find_type_by_name(v1->tuple->s, s2);
++		if (bt == VARCHAR) {
++			char *first, *second;
++
++			first = strchr(cmdline, '"');
++			if (first == NULL) {
++				printf("Missing first quote");
++				return;
++			}
++			second = strchr(first + 1, '"');
++			if (second == NULL) {
++				printf("Missing last quote");
++				return;
++			}
++			memset(s3, 0, BUFSIZE);
++			strncpy(s3, first + 1, second - first - 1);
+ #if _DEBUG
+-            printf("s3=[%s]\n", s3);
++			printf("s3=[%s]\n", s3);
+ #endif
+-        } else if (bt == ENUM) {
+-            attribute_t attr;
+-            
+-            attr = schema_find_attr_by_name(v1->tuple->s, s2);
+-            if (attr == NULL) {
+-                printf("Attribute %s not found\n", s2);
+-                return;
+-            }
++		} else if (bt == ENUM) {
++			attribute_t attr;
++
++			attr = schema_find_attr_by_name(v1->tuple->s, s2);
++			if (attr == NULL) {
++				printf("Attribute %s not found\n", s2);
++				return;
++			}
+ #if _DEBUG
+-            printf("set attribute %s with type %s to %s\n",
+-                   s2, attr->e->name, s3);
++			printf("set attribute %s with type %s to %s\n",
++			       s2, attr->e->name, s3);
+ #endif
+-            tuple_set_enum(v1->tuple, s2,
+-                           attr->e->name, s3, c.el);
+-            
+-            cli_graph_vertex_write(v1);
+-            return;
+-        }
+-        if (tuple_set(v1->tuple, s2, s3) < 0) {
+-            printf("Set vertex tuple value failed\n");
+-            return;
+-        }
+-        cli_graph_vertex_write(v1);
+-        
+-        
+-    } else if (st == EDGE) {
+-        struct component c;
+-        struct edge e;
+-        edge_t e1;
+-        vertexid_t id2;
+-        base_types_t bt;
+-        int fd;
+-        char s[BUFSIZE];
+-        
+-        /* Setup a component for searching */
+-        component_init(&c);
+-        
+-        /* Load enums */
+-        fd = enum_file_open(grdbdir, gno, cno);
+-        if (fd < 0) {
+-            printf("Open enum file failed\n");
+-            return;
+-        }
+-        enum_list_init(&(c.el));
+-        enum_list_read(&(c.el), fd);
+-        close(fd);
+-        
+-        /* Load the edge schema */
+-        memset(s, 0, BUFSIZE);
+-        sprintf(s, "%s/%d/%d/se", grdbdir, gno, cno);
++			tuple_set_enum(v1->tuple, s2,
++				attr->e->name, s3, c.el);
++
++			cli_graph_vertex_write(v1);
++			return;
++		}
++		if (tuple_set(v1->tuple, s2, s3) < 0) {
++			printf("Set vertex tuple value failed\n");
++			return;
++		}
++		cli_graph_vertex_write(v1);
++
++
++	} else if (st == EDGE) {
++		struct component c;
++		struct edge e;
++		edge_t e1;
++		vertexid_t id2;
++		base_types_t bt;
++		int fd;
++		char s[BUFSIZE];
++
++		/* Setup a component for searching */
++		component_init(&c);
++
++		/* Load enums */
++		fd = enum_file_open(grdbdir, gno, cno);
++		if (fd < 0) {
++			printf("Open enum file failed\n");
++			return;
++		}
++		enum_list_init(&(c.el));
++		enum_list_read(&(c.el), fd);
++		close(fd);
++
++		/* Load the edge schema */
++		memset(s, 0, BUFSIZE);
++		sprintf(s, "%s/%d/%d/se", grdbdir, gno, cno);
+ #if _DEBUG
+-        printf("cli_graph_tuple: read edge schema file %s\n", s);
++		printf("cli_graph_tuple: read edge schema file %s\n", s);
+ #endif
+-        fd = open(s, O_RDWR | O_CREAT, 0644);
+-        if (fd < 0) {
+-            printf("Open edge schema file failed\n");
+-            return;
+-        }
+-        c.se = schema_read(fd, c.el);
+-        close(fd);
+-        
+-        /* s2 is a vertex id for an edge */
+-        id2 = (vertexid_t) atoi(s2);
+-        
+-        /* Open the edge file */
+-        memset(s, 0, BUFSIZE);
+-        sprintf(s, "%s/%d/%d/e", grdbdir, gno, cno);
++		fd = open(s, O_RDWR | O_CREAT, 0644);
++		if (fd < 0) {
++			printf("Open edge schema file failed\n");
++			return;
++		}
++		c.se = schema_read(fd, c.el);
++		close(fd);
++
++		/* s2 is a vertex id for an edge */
++		id2 = (vertexid_t) atoi(s2);
++
++		/* Open the edge file */
++		memset(s, 0, BUFSIZE);
++		sprintf(s, "%s/%d/%d/e", grdbdir, gno, cno);
+ #if _DEBUG
+-        printf("cli_graph_tuple: open edge file %s\n", s);
++		printf("cli_graph_tuple: open edge file %s\n", s);
+ #endif
+-        c.efd = open(s, O_RDWR | O_CREAT, 0644);
+-        if (c.efd < 0) {
+-            printf("Find edge ids (%llu,%llu) failed\n",
+-                   id1, id2);
+-            return;
+-        }
+-        edge_init(&e);
+-        edge_set_vertices(&e, id1, id2);
+-        e1 = component_find_edge_by_ids(&c, &e);
+-        if (e1 == NULL) {
+-            printf("Illegal edge id(s)\n");
+-            return;
+-        }
+-        close(c.efd);
+-        
+-        /* Check for a VARCHAR */
+-        bt = schema_find_type_by_name(e1->tuple->s, s3);
+-        if (bt == VARCHAR) {
+-            char *first, *second;
+-            
+-            first = strchr(cmdline, '"');
+-            if (first == NULL) {
+-                printf("Missing first quote");
+-                return;
+-            }
+-            second = strchr(first + 1, '"');
+-            if (second == NULL) {
+-                printf("Missing last quote");
+-                return;
+-            }
+-            memset(s4, 0, BUFSIZE);
+-            strncpy(s4, first + 1, second - first - 1);
++		c.efd = open(s, O_RDWR | O_CREAT, 0644);
++		if (c.efd < 0) {
++			printf("Find edge ids (%llu,%llu) failed\n",
++				id1, id2);
++			return;
++		}
++		edge_init(&e);
++		edge_set_vertices(&e, id1, id2);
++		e1 = component_find_edge_by_ids(&c, &e);
++		if (e1 == NULL) {
++			printf("Illegal edge id(s)\n");
++			return;
++		}
++		close(c.efd);
++
++		/* Check for a VARCHAR */
++		bt = schema_find_type_by_name(e1->tuple->s, s3);
++		if (bt == VARCHAR) {
++			char *first, *second;
++
++			first = strchr(cmdline, '"');
++			if (first == NULL) {
++				printf("Missing first quote");
++				return;
++			}
++			second = strchr(first + 1, '"');
++			if (second == NULL) {
++				printf("Missing last quote");
++				return;
++			}
++			memset(s4, 0, BUFSIZE);
++			strncpy(s4, first + 1, second - first - 1);
+ #if _DEBUG
+-            printf("s4=[%s]\n", s4);
++			printf("s4=[%s]\n", s4);
+ #endif
+-        } else if (bt == ENUM) {
+-            attribute_t attr;
+-            
+-            attr = schema_find_attr_by_name(e1->tuple->s, s3);
+-            if (attr == NULL) {
+-                printf("Attribute %s not found\n", s3);
+-                return;
+-            }
++		} else if (bt == ENUM) {
++			attribute_t attr;
++
++			attr = schema_find_attr_by_name(e1->tuple->s, s3);
++			if (attr == NULL) {
++				printf("Attribute %s not found\n", s3);
++				return;
++			}
+ #if _DEBUG
+-            printf("set attribute %s with type %s to %s\n",
+-                   s3, attr->e->name, s4);
++			printf("set attribute %s with type %s to %s\n",
++			       s3, attr->e->name, s4);
+ #endif
+-            tuple_set_enum(e1->tuple, s3,
+-                           attr->e->name, s4, c.el);
+-            
+-            cli_graph_edge_write(e1);
+-            return;
+-        }
+-        if (tuple_set(e1->tuple, s3, s4) < 0) {
+-            printf("Set edge tuple value failed\n");
+-            return;
+-        }
+-        cli_graph_edge_write(e1);
+-    }
++			tuple_set_enum(e1->tuple, s3,
++				attr->e->name, s4, c.el);
++
++			cli_graph_edge_write(e1);
++			return;
++		}
++		if (tuple_set(e1->tuple, s3, s4) < 0) {
++			printf("Set edge tuple value failed\n");
++			return;
++		}
++		cli_graph_edge_write(e1);
++	}
+ }
+diff --git a/src/db/component_sssp.c b/src/db/component_sssp.c
+index 75a0c73..0691434 100644
+--- a/src/db/component_sssp.c
++++ b/src/db/component_sssp.c
+@@ -1,317 +1,33 @@
+-#include <assert.h>
+-#include <stdio.h>
+-#include <unistd.h>
+-#include <limits.h>
+-#include "cli.h"
+ #include "graph.h"
+-#define INT_type 4
+-#define inf INT_MAX
+-#define min(x, y) (((x) < (y)) ? (x) : (y))
+ 
+ 
+ /* Place the code for your Dijkstra implementation in this file */
+-int
+-get_index_from_id(vertexid_t id, vertexid_t* list,int count){
+-    for(int i = 0; i < count; i++){
+-        if(list[i] == id){
+-            return i;
+-        }
+-    }
+-    return -1;
+-}
+-
+-int
+-component_get_number_of_vertices(component_t c){
+-    ssize_t size, len;
+-    char* buf;
+-    off_t off;
+-    int readlen, count;
+-    
+-    if (c->sv == NULL)
+-        size = 0;
+-    else
+-        size = schema_size(c->sv);
+-    
+-    readlen = sizeof(vertexid_t) + size;
+-    buf = malloc(readlen);
+-    
+-    count = 0;
+-    for (off = 0;; off += readlen) {
+-        lseek(c->vfd, off, SEEK_SET);
+-        len = read(c->vfd, buf, readlen);
+-        
+-        if (len <= 0)
+-            break;
+-        (count) ++;
+-    }
+-    free(buf);
+-    return count;
+-}
+ 
+-void
+-component_get_vertices(component_t c, vertexid_t *list){
+-    ssize_t size, len;
+-    int readlen;
+-    char* buf;
+-    off_t off;
+-    vertexid_t v;
+-    int i;
+-
+-    if (c->sv == NULL)
+-        size = 0;
+-    else
+-        size = schema_size(c->sv);
+-    
+-    readlen = sizeof(vertexid_t) + size;
+-    buf = malloc(readlen);
+-    
+-    for (i = 0,off = 0;; i++, off += readlen) {
+-        lseek(c->vfd, off, SEEK_SET);
+-        len = read(c->vfd, buf, readlen);
+-        if (len <= 0)
+-            break;
+-        
+-        v = *((vertexid_t *) buf);
+-        list[i] = v;
+-    }
+-    free(buf);
+-}
+-
+-attribute_t
+-component_find_int_tuple(attribute_t a)
+-{
+-    attribute_t attr;
+-    
+-    assert (a != NULL);
+-    
+-    for(attr = a; attr != NULL; attr = attr->next){
+-        if(attr->bt == INT_type)
+-            return attr;
+-    }
+-    
+-    return NULL;
+-}
+-
+-int
+-get_weight_from_edge(component_t c, vertexid_t v1, vertexid_t v2, char attr_name[]){
+-    struct edge e;
+-    edge_t e1;
+-    int offset, weight;
+-    
+-    edge_init(&e);
+-    edge_set_vertices(&e, v1, v2);
+-    
+-    e1 = component_find_edge_by_ids(c, &e);
+-    
+-    if(e1 == NULL){
+-        return inf;
+-    }
+-    
+-    offset = tuple_get_offset(e1->tuple, attr_name);
+-    weight = tuple_get_int(e1->tuple->buf + offset);
+-    return weight;
+-}
+ 
+ int
+ component_sssp(
+         component_t c,
+-        vertexid_t start,
+-        vertexid_t end,
++        vertexid_t v1,
++        vertexid_t v2,
+         int *n,
+         int *total_weight,
+         vertexid_t **path)
+ {
+-    /* parameter error check */
+-    if(start != 1){
+-        printf("This Dijkstra's implementation only works with starting vertex = 1\n");
+-        return -1;
+-    }
+-    else if(start == end){
+-        printf("No path between %llu and %llu\n", start, end);
+-        return -1;
+-    }
+-    
+-    /*also used as size of vectors, upper limit on elements in the vectors is v=number of vertices */
+-    int number_of_vertices;
+-    
+-    /* variable sized vectors with count to keep track of element s*/
+-    vertexid_t *s_list;
+-    vertexid_t *sssp_list;
+-    int s_list_count;
+-    int sssp_list_count;
+-    
+-    /* fixed size vectors */
+-    vertexid_t *vertex_list;
+-    int *cost_list;
+-    vertexid_t *parent_list;
+-    
+-    /* add file descriptors to component c */
+-    c->efd = edge_file_init(gno, cno);
+-    c->vfd = vertex_file_init(gno, cno);
+-    
+-    /* check for INT attribute type */
+-    attribute_t weight_attr;
+-    weight_attr = component_find_int_tuple(c->se->attrlist);
+-    if(!weight_attr){
+-        printf("No integer attributes found to use for weight\n");
+-        return -1;
+-    }
+-    
+-    /* calculate max size for vectors, malloc */
+-    number_of_vertices = component_get_number_of_vertices(c);
+-    
+-    /* initialize vectors */
+-    parent_list = malloc(number_of_vertices * sizeof(vertexid_t));
+-    vertex_list = malloc(number_of_vertices * sizeof(vertexid_t));
+-    cost_list = malloc(number_of_vertices * sizeof(int));
+-    sssp_list = malloc(number_of_vertices * sizeof(int));
++	
++	/*
++	 * Figure out which attribute in the component edges schema you will
++	 * use for your weight function
++	 */
++
++
++
++	/*
++	 * Execute Dijkstra on the attribute you found for the specified
++	 * component
++	 */
++
+ 
+-    component_get_vertices(c, vertex_list);
+-    for(int i = 0; i < number_of_vertices; i++){
+-        cost_list[i] = inf;
+-        parent_list[i] = inf;
+-    }
+-    
+-    /* traversal variables */
+-    int start_index;
+-    int end_index;
+-    int min_index;
+-    int min;
+-    int in_vs;
+-    vertexid_t w, v;
+-    
+-    /* get start and end vertices and make sure they exist in c */
+-    start_index = -1;
+-    end_index = -1;
+-    for(int k = 0; k < number_of_vertices; k++){
+-        if(vertex_list[k] == start)
+-            start_index = k;
+-        if(vertex_list[k] == end)
+-            end_index = k;
+-    }
+-    if(start_index == -1 || end_index == -1){
+-        printf("Start or End not found, please specify two vertices that both exist\n");
+-        return -1;
+-    }
+-    
+-    /* set all adjacents of start's parents to start */
+-    for(int i = 1; i < number_of_vertices; i++){
+-        int temp_weight = get_weight_from_edge(c, start, vertex_list[i], weight_attr->name);
+-        if(temp_weight != inf){
+-            parent_list[i] = start;
+-        }
+-    }
+-    
+-    /* begin traversal */
+-    for(int i = 1; i < number_of_vertices; i++){
+-        /* initialize s list with starting vertex */
+-        s_list = malloc(number_of_vertices * sizeof(vertexid_t));
+-        s_list[0] = start;
+-        s_list_count = 1;
+-        
+-        cost_list[i] = get_weight_from_edge(c, start, vertex_list[i], weight_attr->name);
+-        /* choose w in V-S such that D[w] is min */
+-        min = inf;
+-        for(int j = 0; j < number_of_vertices; j++){
+-            /* check if w in V-S */
+-            in_vs = 1;
+-            for(int k = 0; k < s_list_count; k++){
+-                if(vertex_list[j] == s_list[k])
+-                    in_vs = 0;
+-            }
+-            /* calculate min in V-S */
+-            if(in_vs){
+-                if(cost_list[j] < min){
+-                    min_index = j;
+-                }
+-            }
+-            else{
+-                continue;
+-            }
+-            
+-            /* add vertexid w to S */
+-            w = j;
+-            s_list[s_list_count] = vertex_list[w];
+-            s_list_count++;
+-            
+-            /* check if this edge is on shortest path */
+-            for(int l = 0; l < number_of_vertices; l++){
+-                /* check if v in V-S */
+-                v = l;
+-                in_vs = 1;
+-                for(int m = 0; m < s_list_count; m++){
+-                    if(vertex_list[v] == s_list[m])
+-                        in_vs = 0;
+-                }
+-                /* set cost matrix and check if shortest path is found and add parent */
+-                if(in_vs){
+-                    int c_wv = get_weight_from_edge(c, vertex_list[w], vertex_list[v], weight_attr->name);
+-                    if(cost_list[w] == inf || c_wv == inf){
+-                        /* if D[w] or C[w,v] are inf, then the < comparison doesnt need to be made*/
+-                        cost_list[v] = min(cost_list[v], inf);
+-                        
+-                    }
+-                    else{
+-                        /* neither are inf, can do addition and comparison */
+-                        if(cost_list[w] + c_wv < cost_list[v]){
+-                            parent_list[v] = vertex_list[w];
+-                            cost_list[v] = cost_list[w] + c_wv;
+-                        }
+-                    }
+-                }
+-            }
+-        }
+-    }
+-#if _DEBUG
+-    printf("Cost List: [");
+-    for(int n = 0; n < number_of_vertices; n++){
+-        if(n != (number_of_vertices - 1))
+-            printf("%d,", cost_list[n]);
+-        else
+-            printf("%d", cost_list[n]);
+-    }
+-    printf("]\n");
+-    parent_list[start_index] = 0;
+-    printf("Parent List : [");
+-    for(int n = 0; n < number_of_vertices; n++){
+-        if(n != (number_of_vertices - 1))
+-            printf("%llu,", parent_list[n]);
+-        else
+-            printf("%llu", parent_list[n]);
+-    }
+-    printf("]\n");
+-#endif
+-    
+-    /* make SSSP list from parent list for printing */
+-    sssp_list[0] = end;
+-    sssp_list_count = 1;
+-    
+-    for(vertexid_t temp = parent_list[end_index]; temp != start; temp = parent_list[get_index_from_id(temp, vertex_list, number_of_vertices)]){
+-        sssp_list[sssp_list_count] = temp;
+-        sssp_list_count++;
+-        
+-    }
+-    
+-    sssp_list[sssp_list_count] = start;
+-    sssp_list_count++;
+-    
+-    /* print cost along with associated cost */
+-    printf("The shortest path between %llu and %llu has a cost of: %d\n", start, end, cost_list[end_index]);
+-    printf("SSSP List : [");
+-    for(int n = sssp_list_count-1; n >= 0; n--){
+-        if(n != 0)
+-            printf("%llu,", sssp_list[n]);
+-        else
+-            printf("%llu", sssp_list[n]);
+-    }
+-    printf("]\n");
+-    
+-    /* free vectors */
+-    free(parent_list);
+-    free(vertex_list);
+-    free(cost_list);
+-    free(sssp_list);
+-    free(s_list);
+ 
+-	return (1);
++	/* Change this as needed */
++	return (-1);
+ }
+diff --git a/src/db/edge.c b/src/db/edge.c
+index 30d1743..a956744 100644
+--- a/src/db/edge.c
++++ b/src/db/edge.c
+@@ -8,7 +8,6 @@
+ #include <string.h>
+ #include "config.h"
+ #include "graph.h"
+-#include "cli.h"
+ 
+ void
+ edge_init(edge_t e)
+@@ -26,7 +25,7 @@ edge_file_init(int gidx, int cidx)
+ 
+ 	/* Create component edge file */
+ 	memset(s, 0, BUFSIZE);
+-	sprintf(s, "%s/%d/%d/e", grdbdir, gidx, cidx);
++	sprintf(s, "%s/%d/%d/e", GRDBDIR, gidx, cidx);
+ #if _DEBUG
+ 	printf("edge_file_init: open edge file %s\n", s);
+ #endif
+diff --git a/src/db/schema.c b/src/db/schema.c
+index afbc0e7..23aef3e 100644
+--- a/src/db/schema.c
++++ b/src/db/schema.c
+@@ -70,17 +70,12 @@ schema_attribute_insert(schema_t s, attribute_t attr)
+ 
+ 	assert (s != NULL);
+ 	assert (attr != NULL);
++
+ 	if (s->attrlist == NULL) {
+ 		s->attrlist = attr;
+ 		return;
+ 	}
+-#if _DEBUG
+-    printf("%p %p %p\n", t, s, s->attrlist);
+-#endif
+ 	for (t = s->attrlist; t->next != NULL; t = t->next);
+-#if _DEBUG
+-    printf("DOESNT REACH\n");
+-#endif
+ 	t->next = attr;
+ }
+ 
+diff --git a/src/db/schema_read.c b/src/db/schema_read.c
+index 8ba4d1d..86df9e3 100644
+--- a/src/db/schema_read.c
++++ b/src/db/schema_read.c
+@@ -55,10 +55,10 @@ schema_read(int fd, enum_list_t el)
+ 			base_types_str[attr->bt]);
+ #endif
+ 		/* Read enum name if attribute is an enum */
+-        
+ 		if (attr->bt == ENUM) {
+ 			char s[ENUM_NAME_LEN];
+ 			enum_t e;
++
+ 			memset(s, 0, ENUM_NAME_LEN);
+ 			len = read(fd, s, ENUM_NAME_LEN);
+ 			if (len < ENUM_NAME_LEN)
+@@ -68,6 +68,7 @@ schema_read(int fd, enum_list_t el)
+ #endif
+ 			/* Lookup enum in enum list */
+ 			e = enum_list_find_by_name(el, s);
++
+ 			/* Hook the enum to the attribute if found */
+ 			if (e == NULL) {
+ #if _DEBUG
+diff --git a/src/db/vertex.c b/src/db/vertex.c
+index 6761971..dc8d122 100644
+--- a/src/db/vertex.c
++++ b/src/db/vertex.c
+@@ -7,7 +7,6 @@
+ #include <string.h>
+ #include "config.h"
+ #include "graph.h"
+-#include "cli.h"
+ 
+ /* Clear the vertex data structure */
+ void
+@@ -26,7 +25,7 @@ vertex_file_init(int gidx, int cidx)
+ 
+ 	/* Create component vertex file */
+ 	memset(s, 0, BUFSIZE);
+-	sprintf(s, "%s/%d/%d/v", grdbdir, gidx, cidx);
++	sprintf(s, "%s/%d/%d/v", GRDBDIR, gidx, cidx);
+ #if _DEBUG
+ 	printf("vertex_file_init: open vertex file %s\n", s);
+ #endif

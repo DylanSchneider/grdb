@@ -4,22 +4,27 @@
 #include <limits.h>
 #include "cli.h"
 #include "graph.h"
-#define INT_type 4
-#define inf INT_MAX
-#define min(x, y) (((x) < (y)) ? (x) : (y))
+#define INT_type 4 //integer is 4th in enum
+#define inf INT_MAX //used for infinity in dikstras algorithm
+#define min(x, y) (((x) < (y)) ? (x) : (y)) //min used to find min of 2 integers for dijkstras algorithm
 
-
-/* Place the code for your Dijkstra implementation in this file */
-int
-get_index_from_id(vertexid_t id, vertexid_t* list,int count){
-    for(int i = 0; i < count; i++){
-        if(list[i] == id){
-            return i;
-        }
+/* find an attribute on the edge schema that has type int */
+attribute_t
+component_find_int_tuple(attribute_t a)
+{
+    attribute_t attr;
+    
+    assert (a != NULL);
+    
+    for(attr = a; attr != NULL; attr = attr->next){
+        if(attr->bt == INT_type)
+            return attr;
     }
-    return -1;
+    
+    return NULL;
 }
 
+/* get number of vertices in component c */
 int
 component_get_number_of_vertices(component_t c){
     ssize_t size, len;
@@ -48,6 +53,7 @@ component_get_number_of_vertices(component_t c){
     return count;
 }
 
+/* appends to a malloced list all vertex ids in component c */
 void
 component_get_vertices(component_t c, vertexid_t *list){
     ssize_t size, len;
@@ -77,23 +83,12 @@ component_get_vertices(component_t c, vertexid_t *list){
     free(buf);
 }
 
-attribute_t
-component_find_int_tuple(attribute_t a)
-{
-    attribute_t attr;
-    
-    assert (a != NULL);
-    
-    for(attr = a; attr != NULL; attr = attr->next){
-        if(attr->bt == INT_type)
-            return attr;
-    }
-    
-    return NULL;
-}
-
+/* get the weight of an edge */
 int
-get_weight_from_edge(component_t c, vertexid_t v1, vertexid_t v2, char attr_name[]){
+get_weight_from_edge(component_t c,
+                     vertexid_t v1,
+                     vertexid_t v2,
+                     char* attr_name){
     struct edge e;
     edge_t e1;
     int offset, weight;
@@ -112,6 +107,18 @@ get_weight_from_edge(component_t c, vertexid_t v1, vertexid_t v2, char attr_name
     return weight;
 }
 
+/* get the vertex_list index of corresponding vertex id */
+int
+get_index_from_id(vertexid_t id, vertexid_t* list,int count){
+    for(int i = 0; i < count; i++){
+        if(list[i] == id){
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* find shortes path between vertex 1 and any other vertex in component c */
 int
 component_sssp(
         component_t c,
@@ -199,6 +206,10 @@ component_sssp(
         int temp_weight = get_weight_from_edge(c, start, vertex_list[i], weight_attr->name);
         if(temp_weight != inf){
             parent_list[i] = start;
+        }
+        else if(temp_weight <= 0){
+            printf("found zero or negative weight on edge\n");
+            return -1;
         }
     }
     
