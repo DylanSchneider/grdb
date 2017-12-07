@@ -121,13 +121,18 @@ component_sssp(
         int *total_weight,
         vertexid_t **path)
 {
-    
+    /* parameter error check */
     if(start != 1){
         printf("This Dijkstra's implementation only works with starting vertex = 1\n");
         return -1;
     }
+    else if(start == end){
+        printf("No path between %llu and %llu\n", start, end);
+        return -1;
+    }
     
-    int number_of_vertices; //also used as size of vectors, upper limit on elements in the vectors is v=number of vertices
+    /*also used as size of vectors, upper limit on elements in the vectors is v=number of vertices */
+    int number_of_vertices;
     
     /* variable sized vectors with count to keep track of element s*/
     vertexid_t *s_list;
@@ -152,7 +157,6 @@ component_sssp(
         return -1;
     }
     
-    
     /* calculate max size for vectors, malloc */
     number_of_vertices = component_get_number_of_vertices(c);
     
@@ -161,8 +165,7 @@ component_sssp(
     vertex_list = malloc(number_of_vertices * sizeof(vertexid_t));
     cost_list = malloc(number_of_vertices * sizeof(int));
     sssp_list = malloc(number_of_vertices * sizeof(int));
-    
-    
+
     component_get_vertices(c, vertex_list);
     for(int i = 0; i < number_of_vertices; i++){
         cost_list[i] = inf;
@@ -173,13 +176,11 @@ component_sssp(
     int start_index;
     int end_index;
     int min_index;
-    int finished_start;
     int min;
     int in_vs;
     vertexid_t w, v;
     
-    finished_start = 0;
-    
+    /* get start and end vertices and make sure they exist in c */
     start_index = -1;
     end_index = -1;
     for(int k = 0; k < number_of_vertices; k++){
@@ -188,6 +189,10 @@ component_sssp(
         if(vertex_list[k] == end)
             end_index = k;
     }
+    if(start_index == -1 || end_index == -1){
+        printf("Start or End not found, please specify two vertices that both exist\n");
+        return -1;
+    }
     
     /* set all adjacents of start's parents to start */
     for(int i = 1; i < number_of_vertices; i++){
@@ -195,7 +200,6 @@ component_sssp(
         if(temp_weight != inf){
             parent_list[i] = start;
         }
-        
     }
     
     /* begin traversal */
@@ -258,8 +262,6 @@ component_sssp(
             }
         }
     }
-    
-    cost_list[start_index] = 0;
 #if _DEBUG
     printf("Cost List: [");
     for(int n = 0; n < number_of_vertices; n++){
@@ -280,9 +282,9 @@ component_sssp(
     printf("]\n");
 #endif
     
+    /* make SSSP list from parent list for printing */
     sssp_list[0] = end;
     sssp_list_count = 1;
-    
     
     for(vertexid_t temp = parent_list[end_index]; temp != start; temp = parent_list[get_index_from_id(temp, vertex_list, number_of_vertices)]){
         sssp_list[sssp_list_count] = temp;
@@ -293,6 +295,7 @@ component_sssp(
     sssp_list[sssp_list_count] = start;
     sssp_list_count++;
     
+    /* print cost along with associated cost */
     printf("The shortest path between %llu and %llu has a cost of: %d\n", start, end, cost_list[end_index]);
     printf("SSSP List : [");
     for(int n = sssp_list_count-1; n >= 0; n--){
@@ -310,6 +313,5 @@ component_sssp(
     free(sssp_list);
     free(s_list);
 
-	/* Change this as needed */
-	return (-1);
+	return (1);
 }
