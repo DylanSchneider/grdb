@@ -318,6 +318,8 @@ component_sssp(
     printf("]\n");
     
     /* free vectors */
+    close(c->efd);
+    close(c->vfd);
     free(parent_list);
     free(vertex_list);
     free(cost_list);
