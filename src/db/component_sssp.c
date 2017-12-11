@@ -234,6 +234,7 @@ component_sssp(
             if(in_vs){
                 if(cost_list[j] < min){
                     min_index = j;
+                    min = cost_list[j];
                 }
             }
             else{
@@ -260,7 +261,6 @@ component_sssp(
                     if(cost_list[w] == inf || c_wv == inf){
                         /* if D[w] or C[w,v] are inf, then the < comparison doesnt need to be made*/
                         cost_list[v] = min(cost_list[v], inf);
-                        
                     }
                     else{
                         /* neither are inf, can do addition and comparison */
