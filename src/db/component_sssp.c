@@ -206,6 +206,7 @@ component_sssp(
         int temp_weight = get_weight_from_edge(c, start, vertex_list[i], weight_attr->name);
         if(temp_weight != inf){
             parent_list[i] = start;
+            cost_list[i] = temp_weight;
         }
         else if(temp_weight <= 0){
             printf("found zero or negative weight on edge\n");
@@ -245,7 +246,9 @@ component_sssp(
             w = j;
             s_list[s_list_count] = vertex_list[w];
             s_list_count++;
-            
+#if _DEBUG
+            printf("chose w=%llu\n", vertex_list[w]);
+#endif
             /* check if this edge is on shortest path */
             for(int l = 0; l < number_of_vertices; l++){
                 /* check if v in V-S */
@@ -257,6 +260,9 @@ component_sssp(
                 }
                 /* set cost matrix and check if shortest path is found and add parent */
                 if(in_vs){
+#if _DEBUG
+                    printf("chose v=%llu\n", vertex_list[v]);
+#endif
                     int c_wv = get_weight_from_edge(c, vertex_list[w], vertex_list[v], weight_attr->name);
                     if(cost_list[w] == inf || c_wv == inf){
                         /* if D[w] or C[w,v] are inf, then the < comparison doesnt need to be made*/
@@ -265,6 +271,9 @@ component_sssp(
                     else{
                         /* neither are inf, can do addition and comparison */
                         if(cost_list[w] + c_wv < cost_list[v]){
+#if _DEBUG
+                            printf("adding v=%llu with parent w=%llu\n", vertex_list[v], vertex_list[w]);
+#endif
                             parent_list[v] = vertex_list[w];
                             cost_list[v] = cost_list[w] + c_wv;
                         }
